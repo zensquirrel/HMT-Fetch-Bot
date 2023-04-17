@@ -9,6 +9,9 @@ import datetime
 parser = argparse.ArgumentParser(description='parameters for the HMT-Bot')
 parser.add_argument('--fetch_interval', type=int, default=10,
                     help='set the time interval in which to scrape the website')
+parser.add_argument('--data_location',
+                    type=str, default='/home/emil/HMT-Fetch-Bot/data.pkl',
+                    help='set the full path to the data.pkl file')
 args = parser.parse_args()
 
 
@@ -16,7 +19,6 @@ answers = ['What are you doing?', 'Do you need some /help?', '#human',
            u'\uE333', 'Please stop it...', 'You lost!?',
            'Come on.', 'It is not funny']
 
-data_location = '/home/emil/HMT-Fetch-Bot/data.pkl'
 
 async def welcome(update, context):
     await update.message.reply_text('Hey, I am the HMT-Wartenummer-Fetch-Bot. '
@@ -36,7 +38,7 @@ async def help(update, context):
 
 async def send_alert(context):
     wartenummer = get_wartenummer()
-    with open(data_location, 'rb') as handle:
+    with open(args.data_location, 'rb') as handle:
         data = pickle.load(handle)
     for key, value in data.items():
         if wartenummer.strip() == value:
@@ -56,11 +58,11 @@ async def save_user_wartenummer(update, context):
         return
 
     # read data
-    with open(data_location, 'rb') as handle:
+    with open(args.data_location, 'rb') as handle:
         data = pickle.load(handle)
     chat_id = get_chat_id(update, context)
     data[chat_id] = wartenummer
-    with open(data_location, 'wb') as handle:
+    with open(args.data_location, 'wb') as handle:
         pickle.dump(data, handle)
     await update.message.reply_text("Ok, your wartenummer has been saved. "
                                     + "I will send you a message when it is "
@@ -70,10 +72,10 @@ async def save_user_wartenummer(update, context):
 async def stop(update, context):
     # stops the bot from sending alerts to a specific user
     chat_id = get_chat_id(update, context)
-    with open(data_location, 'rb') as handle:
+    with open(args.data_location, 'rb') as handle:
         data = pickle.load(handle)
     data.pop(chat_id)
-    with open(data_location, 'wb') as handle:
+    with open(args.data_location, 'wb') as handle:
         pickle.dump(data, handle)
     await update.message.reply_text('The alert for you wartenummer has been '
                                     + 'stopped')
@@ -82,7 +84,7 @@ async def stop(update, context):
 def flush():
     # flushes the data file every evening.
     data = {}
-    with open(data_location, 'wb') as handle:
+    with open(args.data_location, 'wb') as handle:
         pickle.dump(data, handle)
 
 
@@ -109,11 +111,11 @@ async def echo(update, context):
 def main():
     # making sure that there is a data.pkl file
     try:
-        with open(data_location, 'rb') as handle:
+        with open(args.data_location, 'rb') as handle:
             data = pickle.load(handle)
     except(BaseException):
         data = {}
-        with open(data_location, 'wb') as handle:
+        with open(args.data_location, 'wb') as handle:
             pickle.dump(data, handle)
 
     # Run bot

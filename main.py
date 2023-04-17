@@ -33,7 +33,8 @@ async def help(update, context):
             '\n/start: starts bot and displays introduction.'
             '\n/help: displays this help text.'
             '\n/start x: activates the notification of wartenummer x.'
-            '\n/stop: stops the notifications.')
+            '\n/stop: stops the notifications.'
+            '\n/wartenummer: fetches the current wartenummer')
 
 
 async def send_alert(context):
@@ -45,6 +46,11 @@ async def send_alert(context):
             await context.bot.send_message(chat_id=key,
                                            text='Hurry, its your turn on the '
                                            'waiting list!')
+
+
+async def print_wartenummer(update, context):
+    wartenummer = get_wartenummer()
+    await update.message.reply_text(f'The current wartenummer is: {wartenummer}')
 
 
 async def save_user_wartenummer(update, context):
@@ -127,6 +133,7 @@ def main():
     application.add_handler(CommandHandler("help", help))
     application.add_handler(CommandHandler("save", save_user_wartenummer))
     application.add_handler(CommandHandler("stop", stop))
+    application.add_handler(CommandHandler("wartenummer", print_wartenummer))
     application.add_handler(MessageHandler(filters.TEXT
                                            & ~filters.COMMAND, echo))
 

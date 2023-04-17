@@ -11,9 +11,10 @@ def get_wartenummer():
                      headers=headers,
                      timeout=5)
     soup = BeautifulSoup(r.text, 'html.parser')
-    wartenummer = soup.body.contents[0][1]
-    return wartenummer
+    wartenummer = soup.body.contents[0]
+    return wartenummer.strip()
 
 
 if __name__ == "__main__":
     get_wartenummer()
+    print(get_wartenummer())

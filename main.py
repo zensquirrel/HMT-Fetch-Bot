@@ -7,8 +7,8 @@ import pickle
 import datetime
 
 parser = argparse.ArgumentParser(description='parameters for the HMT-Bot')
-parser.add_argument('--fetch_interval', type=int, default=60,
-                    help='set the interval in which to scrape the website')
+parser.add_argument('--fetch_interval', type=int, default=10,
+                    help='set the time interval in which to scrape the website')
 args = parser.parse_args()
 
 
@@ -24,9 +24,13 @@ async def welcome(update, context):
             'via the \'save\' command, for example: /save 5')
 
 
-def help(update, context):
+async def help(update, context):
     # gives an overview over the commands
-    update.message.reply_text("Sure, these are the commands you can use:")
+    await update.message.reply_text("Sure, these are the commands you can use:"
+            '\n/start: starts bot and displays introduction.'
+            '\n/help: displays this help text.'
+            '\n/start x: activates the notification of wartenummer x.'
+            '\n/stop: stops the notifications.')
 
 
 async def send_alert(context):
@@ -49,11 +53,11 @@ async def save_user_wartenummer(update, context):
         await update.message.reply_text('Something was wrong with your input, '
                                         'please try again!')
         return
+
     # read data
     with open('data.pkl', 'rb') as handle:
         data = pickle.load(handle)
     chat_id = get_chat_id(update, context)
-    # check, whether the user has already saved a wartenummer
     data[chat_id] = wartenummer
     with open('data.pkl', 'wb') as handle:
         pickle.dump(data, handle)
@@ -63,9 +67,8 @@ async def save_user_wartenummer(update, context):
 
 
 async def stop(update, context):
-    # TODO: stops the bot from sending alerts to a specific user
+    # stops the bot from sending alerts to a specific user
     chat_id = get_chat_id(update, context)
-
     with open('data.pkl', 'rb') as handle:
         data = pickle.load(handle)
     data.pop(chat_id)
@@ -76,7 +79,7 @@ async def stop(update, context):
 
 
 def flush():
-    # TODO: flushes the data file every evening.
+    # flushes the data file every evening.
     data = {}
     with open('data.pkl', 'wb') as handle:
         pickle.dump(data, handle)
@@ -116,14 +119,15 @@ def main():
     # Create the Application and pass it your bot's token.
     application = Application.builder().token(os.environ['HMTBOTKEY']).build()
 
-    # on different commands - answer in Telegram
-    application.add_handler(CommandHandler(["start", "help"], welcome))
+    # map telegram commands to functions
+    application.add_handler(CommandHandler(["start"], welcome))
     application.add_handler(CommandHandler("help", help))
     application.add_handler(CommandHandler("save", save_user_wartenummer))
     application.add_handler(CommandHandler("stop", stop))
     application.add_handler(MessageHandler(filters.TEXT
                                            & ~filters.COMMAND, echo))
 
+    # periodicaly do these functions
     job_queue = application.job_queue
     job_queue.run_repeating(send_alert,
                             interval=args.fetch_interval,

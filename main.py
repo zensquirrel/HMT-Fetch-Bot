@@ -68,8 +68,15 @@ async def save_user_wartenummer(update, context):
         data = pickle.load(handle)
     chat_id = get_chat_id(update, context)
     data[chat_id] = wartenummer
+    # write data
     with open(args.data_location, 'wb') as handle:
         pickle.dump(data, handle)
+    # write statistics
+    now = str(datetime.datetime.now())
+    output = f'\n{chat_id}, {wartenummer}, {now}'
+    with open('stat.csv', 'a') as file:
+        file.write(output)
+    # send message
     await update.message.reply_text("Ok, your wartenummer has been saved. "
                                     + "I will send you a message when it is "
                                     + "due :)")
@@ -89,6 +96,7 @@ async def stop(update, context):
 
 def flush():
     # flushes the data file every evening.
+    # not used anymore, due to the usage of a time switch
     data = {}
     with open(args.data_location, 'wb') as handle:
         pickle.dump(data, handle)
@@ -115,14 +123,10 @@ async def echo(update, context):
 
 
 def main():
-    # making sure that there is a data.pkl file
-    try:
-        with open(args.data_location, 'rb') as handle:
-            data = pickle.load(handle)
-    except(BaseException):
-        data = {}
-        with open(args.data_location, 'wb') as handle:
-            pickle.dump(data, handle)
+    # erasing data on every fresh start
+    data = {}
+    with open(args.data_location, 'wb') as handle:
+        pickle.dump(data, handle)
 
     # Run bot
     # Create the Application and pass it your bot's token.
@@ -137,13 +141,12 @@ def main():
     application.add_handler(MessageHandler(filters.TEXT
                                            & ~filters.COMMAND, echo))
 
-    # periodicaly do these functions
+    # periodicaly fetch the wartenummer
     job_queue = application.job_queue
     job_queue.run_repeating(send_alert,
                             interval=args.fetch_interval,
                             first=10)
-    job_queue.run_daily(flush,
-                        time=datetime.time(2, 0, 0, 0))
+
     # Run the bot until the user presses Ctrl-C
     application.run_polling()
 

@@ -41,11 +41,10 @@ async def welcome(update, context):
 async def help(update, context):
     # gives an overview over the commands
     await update.message.reply_text("Sure, these are the commands you can use:"
-            '\n/start: starts bot and displays introduction.'
             '\n/help: displays this help text.'
             '\n/start x: activates the notification of wartenummer x.'
             '\n/stop: stops the notifications.'
-            '\n/wartenummer: fetches the current wartenummer')
+            '\n/wartenummer: fetches the current wartenummer.')
 
 
 async def send_alert(context):

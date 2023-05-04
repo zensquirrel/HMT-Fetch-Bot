@@ -1,10 +1,21 @@
 from telegram.ext import CommandHandler, MessageHandler, filters, Application
 import os
+import sys
 import random
 import argparse
 from hmt_scraper import get_wartenummer
 import pickle
 import datetime
+import logging
+
+logging.basicConfig(
+    filename="output.log",
+    filemode="w",
+    level=logging.INFO,
+    format="%(asctime)s:%(levelname)s:%(message)s",
+    datefmt="%Y-%m-%d %I:%M:%S%p",
+)
+
 
 parser = argparse.ArgumentParser(description='parameters for the HMT-Bot')
 parser.add_argument('--fetch_interval', type=int, default=10,
@@ -56,17 +67,18 @@ async def print_wartenummer(update, context):
 async def save_user_wartenummer(update, context):
     # saves the given Wartenummer with the chat-id
     wartenummer = update.message.text[5:].strip()
+    chat_id = get_chat_id(update, context)
     # checks for invalid input and informs the User about that
     allowed_symbols = [str(i) for i in range(201)] + ['-']
     if wartenummer not in allowed_symbols:
         await update.message.reply_text('Something was wrong with your input, '
                                         'please try again!')
+        logging.warning(f'User {chat_id} tried to save an unsupported symbol.')
         return
 
     # read data
     with open(args.data_location, 'rb') as handle:
         data = pickle.load(handle)
-    chat_id = get_chat_id(update, context)
     data[chat_id] = wartenummer
     # write data
     with open(args.data_location, 'wb') as handle:
@@ -76,6 +88,7 @@ async def save_user_wartenummer(update, context):
     output = f'\n{chat_id}, {wartenummer}, {now}'
     with open('stat.csv', 'a') as file:
         file.write(output)
+    logging.info(f'A wartenummer has been saved with the following data: {output}')
     # send message
     await update.message.reply_text("Ok, your wartenummer has been saved. "
                                     + "I will send you a message when it is "
@@ -125,8 +138,14 @@ async def echo(update, context):
 def main():
     # erasing data on every fresh start
     data = {}
-    with open(args.data_location, 'wb') as handle:
-        pickle.dump(data, handle)
+    try:
+        with open(args.data_location, 'wb') as handle:
+            pickle.dump(data, handle)
+    except FileNotFoundError:
+        logging.error(f'Wrong file path has been given: {args.data_location}')
+        print(f'File {args.data_location} not found.\nSpecify the correct '
+              'file path via the --data_location flag.')
+        sys.exit(1)
 
     # Run bot
     # Create the Application and pass it your bot's token.
@@ -146,6 +165,8 @@ def main():
     job_queue.run_repeating(send_alert,
                             interval=args.fetch_interval,
                             first=10)
+
+    logging.info('Started bot.')
 
     # Run the bot until the user presses Ctrl-C
     application.run_polling()

@@ -2,22 +2,19 @@
 name = "hmt-bot"
 version = "0.1.0"
 description = ""
-authors = ["Emil Michels <emil.michels@posteo.de>"]
+authors = []
 readme = "README.md"
-packages = [{include = "hmt_bot"}]
 
 [tool.poetry.dependencies]
 python = "^3.10"
 fake-useragent = "^1.1.1"
 requests ={extras = ["socks"],version = "^2.28.2"}
 bs4 = "^0.0.1"
-pandas = "^1.5.3"
 apscheduler = "^3.10.1"
 python-telegram-bot = {extras = ["socks, job-queue"], version="^20.2"}
 
 [tool.poetry.group.dev.dependencies]
-jupyter = "^1.0.0"
-notebook = "^6.5.3"
+jupyterlab = "3.5.2"
 
 [build-system]
 requires = ["poetry-core"]

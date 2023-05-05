@@ -8,6 +8,10 @@ import pickle
 import datetime
 import logging
 
+# own logging handler to avoid log flooding through apscheduler and requests
+# logger = logging.getLogger(__name__)
+
+# enables a basic logging procedure
 logging.basicConfig(
     filename="output.log",
     filemode="w",
@@ -26,16 +30,21 @@ parser.add_argument('--data_location',
 args = parser.parse_args()
 
 
+# answers the bot gives to user-messages that are not registered commands.
+# some are more funny than others.
 answers = ['What are you doing?', 'Do you need some /help?', '#human',
-           u'\uE333', 'Please stop it...', 'You lost!?',
-           'Come on.', 'It is not funny']
+           'Please stop it...', 'You lost!?',
+           'Come on.', 'It is not funny', 'Ok, boomer.',
+           'It is actually not that hard to use me correctly...']
 
 
 async def welcome(update, context):
     await update.message.reply_text('Hey, I am the HMT-Wartenummer-Fetch-Bot. '
             'I basically tell you when your wartenummer is due for use. '
             'In order to do that, you just have to give me your wartenummer '
-            'via the \'save\' command, for example: /save 5')
+            'via the \'save\' command, for example: /save 5. To stop my '
+            'notifications, just send /stop. If you want to know what the '
+            'current wartenummer is, do /wartenummer.')
 
 
 async def help(update, context):
@@ -48,6 +57,8 @@ async def help(update, context):
 
 
 async def send_alert(context):
+    # most important function of the bot: fetches the current wartenummer
+    # and notifies the user who saved that wartenummer.
     wartenummer = get_wartenummer()
     with open(args.data_location, 'rb') as handle:
         data = pickle.load(handle)
@@ -59,6 +70,7 @@ async def send_alert(context):
 
 
 async def print_wartenummer(update, context):
+    # fetches the current wartenummer and displays it when asked.
     wartenummer = get_wartenummer()
     await update.message.reply_text(f'The current wartenummer is: {wartenummer}')
 
@@ -103,18 +115,20 @@ async def stop(update, context):
     with open(args.data_location, 'wb') as handle:
         pickle.dump(data, handle)
     await update.message.reply_text('The alert for you wartenummer has been '
-                                    + 'stopped')
+                                    + 'stopped.')
 
 
 def flush():
     # flushes the data file every evening.
-    # not used anymore, due to the usage of a time switch
+    # not used anymore, due to the usage of a mechanical time switch.
     data = {}
     with open(args.data_location, 'wb') as handle:
         pickle.dump(data, handle)
 
 
 def get_chat_id(update, context):
+    # extracts the users unique chat_id in order to be able to send
+    # notifications to the user.
     chat_id = -1
 
     if update.message is not None:
@@ -135,7 +149,8 @@ async def echo(update, context):
 
 
 def main():
-    # erasing data on every fresh start
+    # erasing data on every fresh start and checking for the correct data file
+    # path.
     data = {}
     try:
         with open(args.data_location, 'wb') as handle:
@@ -146,11 +161,14 @@ def main():
               'file path via the --data_location flag.')
         sys.exit(1)
 
-    # Run bot
-    # Create the Application and pass it your bot's token.
+    #
+    # Run the bot
+    #
+    # starts the application with a personal telegram bot token, that, in this
+    # case, is saved in an environment variable.
     application = Application.builder().token(os.environ['HMTBOTKEY']).build()
 
-    # map telegram commands to functions
+    # maps telegram commands to functions
     application.add_handler(CommandHandler(["start"], welcome))
     application.add_handler(CommandHandler("help", help))
     application.add_handler(CommandHandler("save", save_user_wartenummer))
@@ -159,7 +177,7 @@ def main():
     application.add_handler(MessageHandler(filters.TEXT
                                            & ~filters.COMMAND, echo))
 
-    # periodicaly fetch the wartenummer
+    # periodicaly fetches the wartenummer
     job_queue = application.job_queue
     job_queue.run_repeating(send_alert,
                             interval=args.fetch_interval,
@@ -167,7 +185,8 @@ def main():
 
     logging.info('Started bot.')
 
-    # Run the bot until the user presses Ctrl-C
+    # runs the bot until the application is stopped, either by hitting CTRL-C
+    # or, in my setup, by a systemd induced system shutdown.
     application.run_polling()
 
 

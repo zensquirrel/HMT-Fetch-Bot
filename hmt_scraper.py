@@ -7,7 +7,7 @@ def get_wartenummer():
     proxies, headers = fake_profile_generator()
     url = 'https://www.hmt-rostock.de/storages/hmt-rostock/service/wartenummer.php'
     r = requests.get(url,
-                     # proxies=proxies,
+                     proxies=proxies,
                      headers=headers,
                      timeout=5)
     soup = BeautifulSoup(r.text, 'html.parser')

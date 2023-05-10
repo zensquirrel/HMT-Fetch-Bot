@@ -13,6 +13,9 @@ bs4 = "^0.0.1"
 apscheduler = "^3.10.1"
 python-telegram-bot = {extras = ["socks, job-queue"], version="^20.2"}
 
+[tool.poetry.group.optional.dependencies]
+python-dotenv = {extras= ["cli"], version="^1.0.0"}
+
 [tool.poetry.group.dev.dependencies]
 jupyterlab = "3.5.2"
 

@@ -8,26 +8,43 @@ import pickle
 import datetime
 import logging
 
+
+parser = argparse.ArgumentParser(description='parameters for the HMT-Bot')
+parser.add_argument('--fetch_interval', '-f', type=int, default=10, 
+                    help='''set the time interval in which to scrape the website
+                    Default: 10''')
+parser.add_argument('--save_files_location', '-s',
+                    type=str, default=sys.path[0],
+                    help='''set the full path to the location you want to save
+                    the bots output to. 
+                    Default: script directory.''')
+parser.add_argument('--log_file_location', '-l',
+                    type=str, default=sys.path[0],
+                    help='''set the full path to the bots log file.
+                    Default: script directory.
+                    Recommended: /var/log/hmtbot.log''')
+args = parser.parse_args()
+
+
 # own logging handler to avoid log flooding through apscheduler and requests
 # logger = logging.getLogger(__name__)
 
+
+# setting the file paths to the data and stats file.
+log_path = args.log_file_location + '/hmtbot.log'
+data_path = args.save_files_location + '/data.pkl'
+stats_path = args.save_files_location + '/stat.csv'
+
+
 # enables a basic logging procedure
 logging.basicConfig(
-    filename="output.log",
+    filename=log_path,
     filemode="w",
     level=logging.INFO,
     format="%(asctime)s:%(levelname)s:%(message)s",
     datefmt="%Y-%m-%d %I:%M:%S%p",
 )
 
-
-parser = argparse.ArgumentParser(description='parameters for the HMT-Bot')
-parser.add_argument('--fetch_interval', type=int, default=10,
-                    help='set the time interval in which to scrape the website')
-parser.add_argument('--data_location',
-                    type=str, default='/home/emil/HMT-Fetch-Bot/data.pkl',
-                    help='set the full path to the data.pkl file')
-args = parser.parse_args()
 
 
 # answers the bot gives to user-messages that are not registered commands.
@@ -60,7 +77,7 @@ async def send_alert(context):
     # most important function of the bot: fetches the current wartenummer
     # and notifies the user who saved that wartenummer.
     wartenummer = get_wartenummer()
-    with open(args.data_location, 'rb') as handle:
+    with open(data_path, 'rb') as handle:
         data = pickle.load(handle)
     for key, value in data.items():
         if wartenummer.strip() == value:
@@ -88,11 +105,11 @@ async def save_user_wartenummer(update, context):
         return
 
     # read data
-    with open(args.data_location, 'rb') as handle:
+    with open(data_path, 'rb') as handle:
         data = pickle.load(handle)
     data[chat_id] = wartenummer
     # write data
-    with open(args.data_location, 'wb') as handle:
+    with open(data_path, 'wb') as handle:
         pickle.dump(data, handle)
     # write statistics
     now = str(datetime.datetime.now())
@@ -109,10 +126,10 @@ async def save_user_wartenummer(update, context):
 async def stop(update, context):
     # stops the bot from sending alerts to a specific user
     chat_id = get_chat_id(update, context)
-    with open(args.data_location, 'rb') as handle:
+    with open(data_path, 'rb') as handle:
         data = pickle.load(handle)
     data.pop(chat_id)
-    with open(args.data_location, 'wb') as handle:
+    with open(data_path, 'wb') as handle:
         pickle.dump(data, handle)
     await update.message.reply_text('The alert for you wartenummer has been '
                                     + 'stopped.')
@@ -122,7 +139,7 @@ def flush():
     # flushes the data file every evening.
     # not used anymore, due to the usage of a mechanical time switch.
     data = {}
-    with open(args.data_location, 'wb') as handle:
+    with open(data_path, 'wb') as handle:
         pickle.dump(data, handle)
 
 
@@ -153,12 +170,12 @@ def main():
     # path.
     data = {}
     try:
-        with open(args.data_location, 'wb') as handle:
+        with open(data_path, 'wb') as handle:
             pickle.dump(data, handle)
     except FileNotFoundError:
-        logging.error(f'Wrong file path has been given: {args.data_location}')
-        print(f'File {args.data_location} not found.\nSpecify the correct '
-              'file path via the --data_location flag.')
+        logging.error(f'Wrong file path has been given: {data_path}')
+        print(f'File {data_path} not found.\nSpecify the correct '
+              'file path via the --save_files_location flag.')
         sys.exit(1)
 
     #

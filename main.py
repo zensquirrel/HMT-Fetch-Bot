@@ -114,7 +114,7 @@ async def save_user_wartenummer(update, context):
     # write statistics
     now = str(datetime.datetime.now())
     output = f'\n{chat_id}, {wartenummer}, {now}'
-    with open('stat.csv', 'a') as file:
+    with open(stats_path, 'a') as file:
         file.write(output)
     logging.info(f'A wartenummer has been saved with the following data: {output}')
     # send message
